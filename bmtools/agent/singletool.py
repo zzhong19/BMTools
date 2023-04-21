@@ -1,3 +1,4 @@
+#coding=utf- 8
 from langchain.llms import OpenAI
 from langchain import OpenAI, LLMChain
 from langchain.agents import ZeroShotAgent, AgentExecutor, initialize_agent
@@ -96,8 +97,9 @@ class STQuestionAnswerer:
 
             description_for_model = meta_info['description_for_model'].replace("{", "{{").replace("}", "}}").strip()
 
-            prefix = f"""Answer the following questions as best you can. General instructions are: {description_for_model}. Specifically, you have access to the following APIs:"""
-            suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:\nAction Input:\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) YOU MUST INCLUDE all relevant IMAGES in your Final Answer using format ![img](url), and include relevant links. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
+            prefix = f"""Answer the following questions as best you can. General instructions are: {description_for_model}. No less than 1000 words. And answer in Chinese. Specifically, you have access to the following APIs:"""
+            # suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:\nAction Input:\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) YOU MUST INCLUDE all relevant IMAGES in your Final Answer using format ![img](url), and include relevant links. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
+            suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:get_car_description\nAction Input:奔驰GLC\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) YOU MUST INCLUDE all relevant IMAGES in your Final Answer using format ![img](url), and include relevant links. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
 
             prompt = ZeroShotAgent.create_prompt(
                 self.all_tools_map[name], 
@@ -119,12 +121,12 @@ class STQuestionAnswerer:
 
 
 if __name__ == "__main__":
-
-    tools_name, tools_config = load_single_tools()
+    tool_name, tool_url = 'car',  "http://127.0.0.1:8079/tools/car/"
+    tools_name, tools_config = load_single_tools(tool_name, tool_url)
     print(tools_name, tools_config)
     
     qa =  STQuestionAnswerer()
 
     agent = qa.load_tools(tools_name, tools_config)
 
-    agent("Calc integral of sin(x)+2x^2+3x+1 from 0 to 1")
+    agent("对比奔驰GLE和宝马X5？")

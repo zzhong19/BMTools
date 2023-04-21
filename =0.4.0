@@ -1,0 +1,2 @@
+Requirement already satisfied: annotated-types in /Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages (0.4.0)
+Requirement already satisfied: typing-extensions>=4.0.0 in /Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site-packages (from annotated-types) (4.5.0)

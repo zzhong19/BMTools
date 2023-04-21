@@ -69,7 +69,7 @@ class RequestTool(BaseTool):
                     json_args = json.loads(json_args)
                 except:
                     return "Your input can not be parsed as json, please use thought."
-            response = requests.get(url, json_args)
+            response = requests.get(url, json_args) #TODO
             if response.status_code == 200:
                 message = response.text
             else:
