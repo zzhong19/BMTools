@@ -1,5 +1,4 @@
-#export OPENAI_API_KEY='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'
-export OPENAI_API_KEY='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'
+export OPENAI_API_KEY=''
 export WOLFRAMALPH_APP_ID=''
 export WEATHER_API_KEYS=''
 export BING_SUBSCRIPT_KEY=''
