@@ -129,4 +129,6 @@ if __name__ == "__main__":
 
     agent = qa.load_tools(tools_name, tools_config)
 
-    agent("对比奔驰GLE和宝马X5？")
+    # agent("介绍一下奔驰GLC这款车？")
+    # agent("对比奔驰GLE和宝马X5？")
+    agent("推荐几款200万左右的SUV？")
