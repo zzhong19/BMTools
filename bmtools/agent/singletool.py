@@ -97,9 +97,9 @@ class STQuestionAnswerer:
 
             description_for_model = meta_info['description_for_model'].replace("{", "{{").replace("}", "}}").strip()
 
-            prefix = f"""Answer the following questions as best you can. General instructions are: {description_for_model}. No less than 1000 words. And answer in Chinese. Specifically, you have access to the following APIs:"""
+            prefix = f"""Answer the following questions as best. General instructions are: {description_for_model}. No less than 2000 words. And answer in Chinese. Specifically, you have access to the following APIs:"""
             # suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:\nAction Input:\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) YOU MUST INCLUDE all relevant IMAGES in your Final Answer using format ![img](url), and include relevant links. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
-            suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:get_car_description\nAction Input:奔驰GLC\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) YOU MUST INCLUDE all relevant IMAGES in your Final Answer using format ![img](url), and include relevant links. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
+            suffix = """Begin! Remember: (1) Follow the format, i.e,\nThought:\nAction:get_car_description\nAction Input:奔驰GLC\nObservation:\nFinal Answer:\n (2) Provide as much as useful information in your Final Answer. (3) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (4) If you have enough information, please use \nThought: I have got enough information\nFinal Answer: \n\nQuestion: {input}\n{agent_scratchpad}"""
 
             prompt = ZeroShotAgent.create_prompt(
                 self.all_tools_map[name], 
@@ -131,4 +131,7 @@ if __name__ == "__main__":
 
     # agent("介绍一下奔驰GLC这款车？")
     # agent("对比奔驰GLE和宝马X5？")
-    agent("推荐几款200万左右的SUV？")
+    agent("推荐三款20万左右的混合动力新能源汽车？")
+    # agent("2023年3月轿车销量前三位的车型？")
+    # agent("提供详细的艾瑞泽5的信息？")
+    # agent("对比卡罗拉和朗逸？")
