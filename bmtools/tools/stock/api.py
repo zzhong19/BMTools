@@ -1,10 +1,9 @@
 
 import requests
 import json
+from datetime import date, datetime, timedelta
 import os
 from ..tool import Tool
-
-alphavantage_key = os.getenv("ALPHA_VANTAGE_KEY", None)
 
 def build_tool(config) -> Tool:
     tool = Tool(
@@ -20,9 +19,7 @@ def build_tool(config) -> Tool:
     functions = ['TIME_SERIES_INTRADAY', 'TIME_SERIES_INTRADAY_EXTENDED','TIME_SERIES_DAILY', 'TIME_SERIES_DAILY_ADJUSTED']
     types = ['open', 'close', 'high', 'low']
 
-    KEY = config["key"]
-    if alphavantage_key is not None:
-        KEY = os.getenv("ALPHA_VANTAGE_KEY", None)
+    KEY = config["subscription_key"]
     BASE_URL = 'https://www.alphavantage.co/query?'
         
     def get_json_data(function, symbol, interval = '5min', adjusted='true', outputsize='compact', datatype='json'):
@@ -35,9 +32,16 @@ def build_tool(config) -> Tool:
     def get_today_date():
         '''Get today's date
         '''
-        from datetime import date
         today = date.today()
         return today.strftime("%Y-%m-%d")
+
+    @tool.get('/add_date')
+    def add_date(date : str, days : int):
+        '''Add days to a date. Date should be pass as 'yyyy-mm-dd'.
+        '''
+        date = datetime.strptime(date, "%Y-%m-%d")
+        new_date = date + timedelta(days=days)
+        return new_date.strftime("%Y-%m-%d")
 
     @tool.get('/get_daily_prices')
     def get_daily_prices(symbol : str, date : str = ''):
@@ -60,6 +64,7 @@ def build_tool(config) -> Tool:
                 high_price = daily_data["2. high"]
                 low_price = daily_data["3. low"]
                 close_price = daily_data["4. close"]
+                volume = daily_data["6. volume"]
                 break
             elif timestamp < date:
                 final_time = timestamp
@@ -67,8 +72,10 @@ def build_tool(config) -> Tool:
                 high_price = time_series[timestamp]["2. high"]
                 low_price = time_series[timestamp]["3. low"]
                 close_price = time_series[timestamp]["4. close"]
+                volume = time_series[timestamp]["6. volume"]
                 break
-        return {'open':open_price, 'close':close_price, 'high':high_price, 'low':low_price, 'symbol':symbol, 'date':final_time}
+        return {'open':open_price, 'close':close_price, 'high':high_price, 'low':low_price, 'symbol':symbol, 'date':final_time, 'volume':volume}
+
 
     @tool.get('/get_open_info')
     def get_open_info(region : str = 'United States'):

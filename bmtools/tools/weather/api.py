@@ -15,16 +15,13 @@ def build_tool(config) -> Tool:
         legal_info_url="hello@legal.com"
     )
 
-    KEY = os.environ.get('WEATHER_API_KEY', '')
-    if KEY == '':
-        raise RuntimeError("WEATHER_API_KEY not provided, please register one following https://www.weatherapi.com/docs/ and add it to environment variables.")
-
+    KEY = config["subscription_key"]
     URL_CURRENT_WEATHER= "http://api.weatherapi.com/v1/current.json"
     URL_FORECAST_WEATHER = "http://api.weatherapi.com/v1/forecast.json"
         
     @tool.get("/get_weather_today")
     def get_weather_today(location : str):
-        '''gets the weather
+        '''Get today's the weather
         '''
         param = {
             "key": KEY,
@@ -52,8 +49,8 @@ def build_tool(config) -> Tool:
         return text_output
             
     @tool.get("/forecast_weather")
-    def forecast_weather(location : str, days : str):
-        '''Forecast weather in the upcoming days. Args: - location: str - days: int
+    def forecast_weather(location : str, days : int):
+        '''Forecast weather in the upcoming days.
         '''
         param = {
             "key": KEY,

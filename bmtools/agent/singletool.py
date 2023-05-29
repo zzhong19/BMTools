@@ -1,7 +1,7 @@
 #coding=utf- 8
 from langchain.llms import OpenAI
-from langchain import OpenAI, LLMChain
-from langchain.agents import ZeroShotAgent, AgentExecutor, initialize_agent
+from langchain import OpenAI, LLMChain, PromptTemplate, SerpAPIWrapper
+from langchain.agents import ZeroShotAgent, AgentExecutor, initialize_agent, Tool
 import importlib
 import json
 import os
@@ -11,6 +11,9 @@ from bmtools.agent.apitool import RequestTool
 from bmtools.agent.executor import Executor, AgentExecutorWithTranslation
 from bmtools import get_logger
 import sys  
+from bmtools.agent.BabyagiTools import BabyAGI
+# from bmtools.models.customllm import CustomLLM
+
 
 logger = get_logger(__name__)
 
@@ -34,8 +37,9 @@ def import_all_apis(tool_json):
     all_apis = []
     for key in plugin['paths']:
         value = plugin['paths'][key]
-        api = RequestTool(root_url=server_url, func_url=key, method='get', request_info=value)
-        all_apis.append(api)
+        for method in value:
+            api = RequestTool(root_url=server_url, func_url=key, method=method, request_info=value)
+            all_apis.append(api)
     return all_apis
 
 def load_single_tools(tool_name, tool_url):
@@ -77,17 +81,17 @@ class STQuestionAnswerer:
     
     def set_openai_api_key(self, key):
         logger.info("Using {}".format(self.llm_model))
+        
         if self.llm_model == "GPT-3.5":
             self.llm = OpenAI(temperature=0.0, openai_api_key=key)  # use text-darvinci
         elif self.llm_model == "ChatGPT":
             self.llm = OpenAI(model_name="gpt-3.5-turbo", temperature=0.0, openai_api_key=key)  # use chatgpt
         else:
             raise RuntimeError("Your model is not available.")
-
+        
     def load_tools(self, name, meta_info, prompt_type="react-with-tool-description", return_intermediate_steps=True):
 
         self.all_tools_map = {}
-        
         self.all_tools_map[name] = import_all_apis(meta_info)
 
         logger.info("Tool [{}] has the following apis: {}".format(name, self.all_tools_map[name]))
@@ -95,7 +99,7 @@ class STQuestionAnswerer:
         if prompt_type == "zero-shot-react-description":
             subagent = initialize_agent(self.all_tools_map[name], self.llm, agent="zero-shot-react-description", verbose=True, return_intermediate_steps=return_intermediate_steps)
         elif prompt_type == "react-with-tool-description":
-
+            # customllm = CustomLLM()
             description_for_model = meta_info['description_for_model'].replace("{", "{{").replace("}", "}}").strip()
 
             prefix = f"""Answer the following questions as best. General instructions are: {description_for_model}. No less than 2000 words. And answer in Chinese. Specifically, you have access to the following APIs:"""
@@ -109,6 +113,7 @@ class STQuestionAnswerer:
                 input_variables=["input", "agent_scratchpad"]
             )
             llm_chain = LLMChain(llm=self.llm, prompt=prompt)
+            # llm_chain = LLMChain(llm=customllm, prompt=prompt)
             logger.info("Full prompt template: {}".format(prompt.template))
             tool_names = [tool.name for tool in self.all_tools_map[name] ]
             agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)
@@ -117,9 +122,106 @@ class STQuestionAnswerer:
             else:
                 agent_executor = AgentExecutorWithTranslation.from_agent_and_tools(agent=agent, tools=self.all_tools_map[name], verbose=True, return_intermediate_steps=return_intermediate_steps)
             return agent_executor
+        elif prompt_type == "babyagi":
+            # customllm = CustomLLM()
+            tool_str = "; ".join([t.name for t in self.all_tools_map[name]])
+            prefix = """You are an AI who performs one task based on the following objective: {objective}. Take into account these previously completed tasks: {context}.\n You have access to the following APIs:"""
+            suffix = """YOUR CONSTRAINTS: (1) YOU MUST follow this format:
+            \nThought:\nAction:\nAction Input: \n or \nThought:\nFinal Answer:\n (2) Do not make up anything, and if your Observation has no link, DO NOT hallucihate one. (3) The Action: MUST be one of the following: """ + tool_str + """\nQuestion: {task}\n Agent scratchpad (history actions): {agent_scratchpad}."""
 
-        return subagent
+            prompt = ZeroShotAgent.create_prompt(
+                self.all_tools_map[name], 
+                prefix=prefix, 
+                suffix=suffix, 
+                input_variables=["objective", "task", "context","agent_scratchpad"]
+            )
 
+            logger.info("Full prompt template: {}".format(prompt.template))
+            # specify the maximum number of iterations you want babyAGI to perform
+            max_iterations = 10
+            baby_agi = BabyAGI.from_llm(
+                llm=self.llm,
+                # llm=customllm,
+                prompt=prompt,
+                verbose=False,
+                tools=self.all_tools_map[name],
+                stream_output=self.stream_output,
+                return_intermediate_steps=return_intermediate_steps,
+                max_iterations=max_iterations,
+            )
+
+            return baby_agi
+        elif prompt_type == "autogpt":
+            from langchain.vectorstores import FAISS
+            from langchain.docstore import InMemoryDocstore
+            from langchain.embeddings import OpenAIEmbeddings
+            from langchain.tools.file_management.write import WriteFileTool
+            from langchain.tools.file_management.read import ReadFileTool
+
+            # Define your embedding model
+            embeddings_model = OpenAIEmbeddings()
+            # Initialize the vectorstore as empty
+            import faiss
+
+            embedding_size = 1536
+            index = faiss.IndexFlatL2(embedding_size)
+            vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+
+            from .autogpt.agent import AutoGPT
+            from langchain.chat_models import ChatOpenAI
+            from langchain.schema import (
+                AIMessage,
+                ChatGeneration,
+                ChatMessage,
+                ChatResult,
+                HumanMessage,
+                SystemMessage,
+            )
+
+            # customllm = CustomLLM()
+            # class MyChatOpenAI(ChatOpenAI):
+            #     def _create_chat_result(self, response):
+            #         generations = []
+            #         for res in response["choices"]:
+            #             message = self._convert_dict_to_message(res["message"])
+            #             gen = ChatGeneration(message=message)
+            #             generations.append(gen)
+            #         llm_output = {"token_usage": response["usage"], "model_name": self.model_name}
+            #         return ChatResult(generations=generations, llm_output=llm_output)
+                
+            #     def _generate(self, messages, stop):
+            #         message_dicts, params = self._create_message_dicts(messages, stop)
+            #         response = customllm(message_dicts)
+            #         response = json.loads(response)
+            #         # response = self.completion_with_retry(messages=message_dicts, **params)
+            #         return self._create_chat_result(response)
+                
+            #     def _convert_dict_to_message(self, _dict: dict):
+            #         role = _dict["role"]
+            #         if role == "user":
+            #             return HumanMessage(content=_dict["content"])
+            #         elif role == "assistant":
+            #             return AIMessage(content=_dict["content"])
+            #         elif role == "system":
+            #             return SystemMessage(content=_dict["content"])
+            #         else:
+            #             return ChatMessage(content=_dict["content"], role=role)
+
+            # should integrate WriteFile and ReadFile into tools, will fix later.
+            # for tool in [WriteFileTool(), ReadFileTool()]:
+            #     self.all_tools_map[name].append(tool)
+
+            agent = AutoGPT.from_llm_and_tools(
+                ai_name="Tom",
+                ai_role="Assistant",
+                tools=self.all_tools_map[name],
+                llm=ChatOpenAI(temperature=0),
+                # llm=MyChatOpenAI(temperature=0),
+                memory=vectorstore.as_retriever()
+            )
+            # Set verbose to be true
+            agent.chain.verbose = True
+            return agent
 
 if __name__ == "__main__":
     tool_name, tool_url = 'car',  "http://127.0.0.1:8079/tools/car/"

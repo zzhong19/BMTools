@@ -1,16 +1,8 @@
 
 import requests
-from bs4 import BeautifulSoup
 from ..tool import Tool
-from pydantic import BaseModel
-from typing import Any, Optional
-from uuid import UUID
-import fastapi
-from fastapi_sessions.backends.implementations import InMemoryBackend
-from fastapi_sessions.session_verifier import SessionVerifier
-from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
+from typing import Any
 import os
-import json
 import xmltodict
 
 
@@ -34,9 +26,7 @@ def build_tool(config) -> Tool:
         """
         URL = "https://api.wolframalpha.com/v2/query"
         
-        APPID = os.environ.get("WOLFRAMALPH_APP_ID", "")
-        if len(APPID) == 0:
-            print("You should set you APPID by `export WOLFRAMALPH_APP_ID=XXXXX`")
+        APPID = config["subscription_key"]
 
         params = {'appid': APPID, "input": input}
         
@@ -61,7 +51,10 @@ def build_tool(config) -> Tool:
 
         for ret in rets:
             ret = filter_dict(ret, blacklist=blacklist)
-            cleaned_rets.append(ret)
+            # Do further cleaning to retain only the input and result pods
+            if "@title" in ret:
+                if ret["@title"] == "Input" or ret["@title"] == "Result":
+                    cleaned_rets.append(ret)
 
         return cleaned_rets
     
