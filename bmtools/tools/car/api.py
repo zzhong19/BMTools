@@ -54,9 +54,9 @@ def build_tool(config) -> Tool:
                       if '（图片来源' in output:
                         output = output.split('（图片来源',1)[0] 
                       return output
-
-    @tool.get("/get_list_of_cars_given_vehicle_type_and_price")               
-    def get_list_of_cars_given_vehicle_type_and_price(name : str = 'SUV', price : str = '90'):
+    '''
+    @tool.get("/suggest_car_names_given_vehicle_type_and_price")               
+    def suggest_car_names_given_vehicle_type_and_price(name : str = 'SUV', price : str = '90'):
         start_url = 'https://www.autohome.com.cn/car/'
         if '-' in price:
           price = price.replace('-', '_')
@@ -64,6 +64,8 @@ def build_tool(config) -> Tool:
             price = price.replace('万', '')
         else:
           price = re.findall(r'\d+', price)[0]
+          if int(price) > 10000:
+            price = str(int(int(price) / 10000))
           price = price + '_' + price
         print(price)
         response = requests.get(start_url)
@@ -89,5 +91,5 @@ def build_tool(config) -> Tool:
               return output
             except:
               continue
-
+    '''
     return tool

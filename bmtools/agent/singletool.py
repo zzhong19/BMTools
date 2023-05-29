@@ -10,6 +10,7 @@ import yaml
 from bmtools.agent.apitool import RequestTool
 from bmtools.agent.executor import Executor, AgentExecutorWithTranslation
 from bmtools import get_logger
+import sys  
 
 logger = get_logger(__name__)
 
@@ -129,9 +130,26 @@ if __name__ == "__main__":
 
     agent = qa.load_tools(tools_name, tools_config)
 
-    # agent("介绍一下奔驰GLC这款车？")
+    # sys.stdout = open('/Users/zzhong/Desktop/BMTools/results/' + 'GLC', 'w')
+
+    agent("介绍一下奔驰GLC这款车？")
     # agent("对比奔驰GLE和宝马X5？")
-    agent("推荐三款20万左右的混合动力新能源汽车？")
+    # agent("推荐三款15到20万左右的混动汽车？")
+
     # agent("2023年3月轿车销量前三位的车型？")
     # agent("提供详细的艾瑞泽5的信息？")
     # agent("对比卡罗拉和朗逸？")
+    '''
+    sys.stdout.close()
+  
+    with open('/Users/zzhong/Desktop/BMTools/results/' + 'GLC', 'r') as file:
+        data = file.read()
+        data = data.replace('[1m> ', '')
+        data = data.replace('[0m', '')
+        data = data.replace('[32;1m', '')
+        data = data.replace('[1;3m', '')
+        data = data.replace('[36;1m', '')
+
+    with open('/Users/zzhong/Desktop/BMTools/results/' + 'GLC', 'w') as file:
+        file.write(data)
+    '''
