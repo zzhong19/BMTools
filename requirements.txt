@@ -5,7 +5,7 @@ python-pptx
 bs4
 langchain==0.0.147
 openai
-gradio
+gradio==3.26.0
 py3langid
 transformers
 cchardet
